@@ -1,4 +1,4 @@
-// Nombre: Nicolas Vasquez //<>// //<>//
+// Nombre: Nicolas Vasquez //<>//
 // Fecha: 08/08/2021
 
 // Constantes
@@ -11,9 +11,9 @@ final float v_zero = 5.0;
 final float tau = 0.5;
 final float delta_t = 0.5;
 
-final int MAX_PEOPLE = 100;
+final int MAX_PEOPLE = 80;
 final float MAX_VELOCITY = 10.0;
-final float MAX_FORCE = 0.3;
+final float MAX_FORCE = 0.9;
 
 // Puntos de las paredes
 
@@ -93,6 +93,7 @@ PVector point_perpendicular(PVector p1, PVector p2, PVector p3) {
   double dx = p2.x - p1.x;
   double dy = p2.y - p1.y;
   double mag = Math.sqrt(dx*dx + dy*dy);
+  if (mag == 0) return new PVector(0, 0);
   // Vector unitario
   dx = dx/mag;
   dy = dy/mag;
