@@ -1,4 +1,4 @@
-// Nombre: Nicolas Vasquez //<>// //<>// //<>//
+// Nombre: Nicolas Vasquez //<>// //<>// //<>// //<>// //<>//
 // Fecha: 08/08/2021
 
 Flock flock;
@@ -6,7 +6,7 @@ Flock flock;
 void setup() {
   size(700, 500);
   background(0);
-  frameRate(20);
+  frameRate(200);
   rectMode(CENTER);
 
   stroke(178, 102, 255);
@@ -15,16 +15,16 @@ void setup() {
 
   flock = new Flock();
   // Aleatorio
-  for (int i = 0; i < 80; i++) {
-    flock.addPerson(new Person(flock.people));
-  }
+  //for (int i = 0; i < 80; i++) {
+  //  flock.addPerson(new Person(flock.people));
+  //}
 
   // Determinista
-  //for (int i = 0; i < 8; i++) {
-  //  for (int j = 0; j < 10; j++) {
-  //    flock.addPerson(new Person(new PVector(50 + i*22, 150 + 22*j)));
-  //  }
-  //}
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 10; j++) {
+      flock.addPerson(new Person(new PVector(50 + i*22, 150 + 22*j)));
+    }
+  }
 }
 
 void draw() {
@@ -57,6 +57,9 @@ final float kappa = 3000;
 final float v_zero = 5.0;
 final float tau = 0.5;
 final float delta_t = 0.5;
+
+final float MAX_VELOCITY = 10.0;
+final float MAX_FORCE = 0.3;
 
 ArrayList<Person> copy(ArrayList<Person> people) {
   ArrayList<Person> aux = new ArrayList<Person>();
@@ -143,10 +146,10 @@ class Person {
 
   PVector calc_force(ArrayList<Person> people) {
     PVector same = f_same();
-    //PVector person = f_person(people);
-    //PVector wall = f_wall();
-    //return PVector.add(same, PVector.add(person, wall));
-    return same; //<>//
+    PVector person = f_person(people);
+    PVector wall = f_wall();
+    return PVector.add(same, PVector.add(person, wall));
+    //return same;
   }
 
   PVector calc_e() {
@@ -160,7 +163,9 @@ class Person {
   }
 
   PVector f_same() {
-    return PVector.mult(PVector.sub(PVector.mult(calc_e(), v_zero), v), 1/tau);
+    PVector total = PVector.mult(PVector.sub(PVector.mult(calc_e(), v_zero), v), 1/tau);
+    total.limit(MAX_FORCE);
+    return total;
   }
 
   PVector f_person(ArrayList<Person> people) {
@@ -179,6 +184,10 @@ class Person {
         acum_friccion.add(PVector.mult(p_normalize(n_ij), kappa*(r_ij - d_ij) * v_tangential(other)));
       }
     }
+    
+    acum_repulsion.limit(MAX_FORCE);
+    acum_corporal.limit(MAX_FORCE);
+    acum_friccion.limit(MAX_FORCE);
 
     return PVector.add(PVector.add(acum_repulsion, acum_corporal), acum_friccion);
   }
@@ -190,18 +199,20 @@ class Person {
   }
 
   PVector calc_wall(PVector p1, PVector p2) {
-    PVector acum_force = new PVector(0, 0);
-
     PVector pw = point_perpendicular(p1, p2, p);
-
+    
     float d_iw = PVector.sub(p, pw).mag();
     PVector n_iw = normalize(p, pw);
+    
+    PVector f_repulsion = PVector.mult(n_iw, A*exp(-(d_iw - r)/B));
+    PVector f_corporal = PVector.mult(n_iw, 2*k*(r - d_iw));
+    PVector f_friccion = PVector.mult(p_normalize(n_iw), kappa*(r - d_iw) * v_tangential(pw));
+    
+    f_repulsion.limit(MAX_FORCE);
+    f_corporal.limit(MAX_FORCE);
+    f_friccion.limit(MAX_FORCE);
 
-    acum_force.add(PVector.mult(n_iw, A*exp(-(d_iw - r)/B)));
-    acum_force.add(PVector.mult(n_iw, 2*k*(r - d_iw)));
-    acum_force.add(PVector.mult(p_normalize(n_iw), kappa*(r - d_iw) * v_tangential(pw)));
-
-    return acum_force;
+    return PVector.add(f_repulsion, PVector.add(f_corporal, f_friccion));
   }
 
   float v_tangential(Person other) {
