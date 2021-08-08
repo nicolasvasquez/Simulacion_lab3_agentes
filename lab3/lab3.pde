@@ -1,52 +1,5 @@
-// Nombre: Nicolas Vasquez //<>// //<>// //<>// //<>// //<>//
+// Nombre: Nicolas Vasquez //<>// //<>//
 // Fecha: 08/08/2021
-
-Flock flock;
-
-void setup() {
-  size(700, 500);
-  background(0);
-  frameRate(200);
-  rectMode(CENTER);
-
-  stroke(178, 102, 255);
-  line(0, 0, 600, 226);
-  line(0, 500, 600, 274);
-
-  flock = new Flock();
-  // Aleatorio
-  //for (int i = 0; i < 80; i++) {
-  //  flock.addPerson(new Person(flock.people));
-  //}
-
-  // Determinista
-  for (int i = 0; i < 8; i++) {
-    for (int j = 0; j < 10; j++) {
-      flock.addPerson(new Person(new PVector(50 + i*22, 150 + 22*j)));
-    }
-  }
-}
-
-void draw() {
-  //scale(1, -1);
-  //translate(0, -height);
-  background(0);
-  stroke(178, 102, 255);
-  line(0, 0, 600, 226);
-  line(0, 500, 600, 274);
-
-  flock.run();
-}
-
-// Puntos de la linea
-
-final PVector L1_1 = new PVector(0, 0);
-final PVector L1_2 = new PVector(600, 226);
-final PVector L2_1 = new PVector(0, 500);
-final PVector L2_2 = new PVector(600, 274);
-
-final PVector EXIT_SUP = new PVector(600, 239);
-final PVector EXIT_INF = new PVector(600, 261);
 
 // Constantes
 final float R = 80;
@@ -58,8 +11,61 @@ final float v_zero = 5.0;
 final float tau = 0.5;
 final float delta_t = 0.5;
 
+final int MAX_PEOPLE = 100;
 final float MAX_VELOCITY = 10.0;
 final float MAX_FORCE = 0.3;
+
+// Puntos de las paredes
+
+final PVector L1_1 = new PVector(0, 0);
+final PVector L1_2 = new PVector(600, 226);
+final PVector L2_1 = new PVector(0, 500);
+final PVector L2_2 = new PVector(600, 274);
+
+final PVector EXIT_SUP = new PVector(600, 239);
+final PVector EXIT_INF = new PVector(600, 261);
+
+Flock flock;
+
+void setup() {
+  size(700, 500);
+  frameRate(200);
+  rectMode(CENTER);
+
+  background(68, 0, 40);
+  stroke(203, 135, 175);
+  line(0, 0, 600, 226);
+  line(0, 500, 600, 274);
+
+  flock = new Flock();
+  
+  // Aleatorio
+  for (int i = 0; i < MAX_PEOPLE; i++) {
+    flock.addPerson(new Person(flock.people));
+  }
+
+  // Determinista
+  //for (int i = 0; i < MAX_PEOPLE/10; i++) {
+  //  for (int j = 0; j < 10; j++) {
+  //    flock.addPerson(new Person(new PVector(50 + i*22, 150 + 22*j)));
+  //  }
+  //}
+}
+
+void draw() {
+  //scale(1, -1);
+  //translate(0, -height);
+  background(68, 0, 40);
+  stroke(203, 135, 175);
+  line(0, 0, 600, 226);
+  line(0, 500, 600, 274);
+
+  flock.run();
+}
+
+void mousePressed() {
+  flock.addPerson(new Person(new PVector(mouseX, mouseY)));
+}
 
 ArrayList<Person> copy(ArrayList<Person> people) {
   ArrayList<Person> aux = new ArrayList<Person>();
@@ -139,10 +145,14 @@ class Person {
     v = new PVector(0, 0);
   }
 
-  void update(PVector force) {
+  void update(ArrayList<Person> people, PVector force) {
     v = PVector.add(v, PVector.mult(force, delta_t));
     v.limit(MAX_VELOCITY);
     p = PVector.add(p, PVector.mult(v, delta_t));
+    
+    if (p.x > 600) {
+      p = p_random(people);
+    }
   }
 
   PVector calc_force(ArrayList<Person> people) {
@@ -150,11 +160,10 @@ class Person {
     PVector person = f_person(people);
     PVector wall = f_wall();
     return PVector.add(same, PVector.add(person, wall));
-    //return same;
   }
 
   PVector calc_e() {
-    if (p.y > 231 && p.y < 279) {
+    if (p.y > 236 && p.y < 284) {
       return new PVector(1, 0);
     }
     if (p.y <= 231) {
@@ -242,11 +251,12 @@ class Person {
   void run(ArrayList<Person> people) {
     render();
     PVector total_force = calc_force(people);
-    update(total_force);
+    update(people, total_force);
   };
 
   void render() {
-    fill(178, 102, 255);
+    fill(135, 45, 98);
+    stroke(169, 84, 134);
     pushMatrix();
     circle(p.x, p.y, r*2);
     popMatrix();
