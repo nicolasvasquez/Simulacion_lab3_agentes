@@ -141,6 +141,7 @@ class Person {
 
   void update(PVector force) {
     v = PVector.add(v, PVector.mult(force, delta_t));
+    v.limit(MAX_VELOCITY);
     p = PVector.add(p, PVector.mult(v, delta_t));
   }
 
