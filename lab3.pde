@@ -1,4 +1,4 @@
-// Nombre: Nicolas Vasquez //<>//
+// Nombre: Nicolas Vasquez //<>// //<>// //<>//
 // Fecha: 08/08/2021
 
 Flock flock;
@@ -6,7 +6,7 @@ Flock flock;
 void setup() {
   size(700, 500);
   background(0);
-  frameRate(4);
+  frameRate(20);
   rectMode(CENTER);
 
   stroke(178, 102, 255);
@@ -18,13 +18,13 @@ void setup() {
   for (int i = 0; i < 80; i++) {
     flock.addPerson(new Person(flock.people));
   }
-  
+
   // Determinista
-  for (int i = 0; i < 10; i++) {
-    for (int j = 0; j < 8; j++) {
-      flock.addPerson(new Person(new PVector(10 + i*10, 110 + 110*j)));
-    }
-  }
+  //for (int i = 0; i < 8; i++) {
+  //  for (int j = 0; j < 10; j++) {
+  //    flock.addPerson(new Person(new PVector(50 + i*22, 150 + 22*j)));
+  //  }
+  //}
 }
 
 void draw() {
@@ -40,10 +40,13 @@ void draw() {
 
 // Puntos de la linea
 
-PVector L1_1 = new PVector(0, 0);
-PVector L1_2 = new PVector(600, 226);
-PVector L2_1 = new PVector(0, 500);
-PVector L2_2 = new PVector(600, 274);
+final PVector L1_1 = new PVector(0, 0);
+final PVector L1_2 = new PVector(600, 226);
+final PVector L2_1 = new PVector(0, 500);
+final PVector L2_2 = new PVector(600, 274);
+
+final PVector EXIT_SUP = new PVector(600, 239);
+final PVector EXIT_INF = new PVector(600, 261);
 
 // Constantes
 final float R = 80;
@@ -53,14 +56,15 @@ final float k = 750;
 final float kappa = 3000;
 final float v_zero = 5.0;
 final float tau = 0.5;
+final float delta_t = 0.5;
 
 ArrayList<Person> copy(ArrayList<Person> people) {
   ArrayList<Person> aux = new ArrayList<Person>();
-  
-  for (Person pp: people) {
+
+  for (Person pp : people) {
     aux.add(new Person(pp.p, pp.v));
   }
-  
+
   return aux;
 }
 
@@ -97,11 +101,11 @@ class Flock {
   Flock() {
     people = new ArrayList<Person>();
   }
- //<>//
+
   void addPerson(Person  p) {
     people.add(p);
   }
-  
+
   void run() {
     ArrayList<Person> now = copy(people);
     for (Person p : people) {
@@ -111,7 +115,7 @@ class Flock {
 }
 
 class Person {
-  float r, m;
+  float r;
   PVector p, v;
 
   Person(ArrayList<Person> people) {
@@ -119,38 +123,42 @@ class Person {
     p = p_random(people);
     v = new PVector(0, 0);
   }
-  
+
   Person(PVector position, PVector velocity) {
     r = 10;
-    p = position;
-    v = velocity;
+    p = position.copy();
+    v = velocity.copy();
   }
-  
+
   Person(PVector position) {
     r = 10;
-    p = position;
+    p = position.copy();
     v = new PVector(0, 0);
   }
 
   void update(PVector force) {
-    v = PVector.add(v, PVector.mult(force, 0.0001));
-    p = PVector.add(p, PVector.mult(v, 0.0001)); //<>//
+    v = PVector.add(v, PVector.mult(force, delta_t));
+    p = PVector.add(p, PVector.mult(v, delta_t));
   }
 
   PVector calc_force(ArrayList<Person> people) {
     PVector same = f_same();
-    PVector person = f_person(people);
-    PVector wall = f_wall();
-    return PVector.add(same, PVector.add(person, wall));
+    //PVector person = f_person(people);
+    //PVector wall = f_wall();
+    //return PVector.add(same, PVector.add(person, wall));
+    return same; //<>//
   }
-  
+
   PVector calc_e() {
-    if(p.y > 231 || p.y < 279) {
+    if (p.y > 231 && p.y < 279) {
       return new PVector(1, 0);
     }
-    return new PVector(0, 0);
+    if (p.y <= 231) {
+      return normalize(EXIT_SUP, p);
+    }
+    return normalize(EXIT_INF, p);
   }
-  
+
   PVector f_same() {
     return PVector.mult(PVector.sub(PVector.mult(calc_e(), v_zero), v), 1/tau);
   }
@@ -180,19 +188,19 @@ class Person {
     PVector f_wall2 = calc_wall(L2_1, L2_2);
     return PVector.add(f_wall1, f_wall2);
   }
-  
+
   PVector calc_wall(PVector p1, PVector p2) {
     PVector acum_force = new PVector(0, 0);
-    
+
     PVector pw = point_perpendicular(p1, p2, p);
-    
+
     float d_iw = PVector.sub(p, pw).mag();
     PVector n_iw = normalize(p, pw);
-    
+
     acum_force.add(PVector.mult(n_iw, A*exp(-(d_iw - r)/B)));
     acum_force.add(PVector.mult(n_iw, 2*k*(r - d_iw)));
     acum_force.add(PVector.mult(p_normalize(n_iw), kappa*(r - d_iw) * v_tangential(pw)));
-    
+
     return acum_force;
   }
 
@@ -213,13 +221,11 @@ class Person {
       position.set(random(10, 230), random(110, 390));
 
       for (Person other : people) {
-        if (PVector.dist(position, other.p) <= 10) flag = true;
+        if (PVector.dist(position, other.p) <= 20) flag = true;
       }
     }
     return position;
   }
-  
-  //PVector p_deterministic
 
   void run(ArrayList<Person> people) {
     render();
@@ -230,7 +236,7 @@ class Person {
   void render() {
     fill(178, 102, 255);
     pushMatrix();
-    circle(p.x, p.y, r);
+    circle(p.x, p.y, r*2);
     popMatrix();
   }
 }
