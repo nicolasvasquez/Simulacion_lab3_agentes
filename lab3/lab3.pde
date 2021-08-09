@@ -1,5 +1,18 @@
-// Nombre: Nicolas Vasquez //<>//
+// Nombre: Nicolas Vasquez //<>// //<>//
 // Fecha: 08/08/2021
+
+// Constantes para modo de ejecucion
+
+// Genera particulas en posiciones aleatorias dentro del espacio asignado.
+// Al usar false, se generan de forma determinista.
+final boolean RANDOM_GENERATE = true;
+// Al salir una particula de la pantalla vuelve por el otro lado.
+// Al usar false simplemente se eliminan
+final boolean INFINITE_LOOP = false;
+
+// Velocidad y fuerza maxima. De estas constantes depende el comportamiento de los agentes.
+final float MAX_VELOCITY = 10.0;
+final float MAX_FORCE = 3.5;
 
 // Constantes
 final float R = 80;
@@ -10,10 +23,7 @@ final float kappa = 3000;
 final float v_zero = 5.0;
 final float tau = 0.5;
 final float delta_t = 0.5;
-
 final int MAX_PEOPLE = 80;
-final float MAX_VELOCITY = 10.0;
-final float MAX_FORCE = 0.9;
 
 // Puntos de las paredes
 
@@ -25,11 +35,11 @@ final PVector L2_2 = new PVector(600, 274);
 final PVector EXIT_SUP = new PVector(600, 239);
 final PVector EXIT_INF = new PVector(600, 261);
 
-Flock flock;
+Group group;
 
 void setup() {
   size(700, 500);
-  frameRate(200);
+  frameRate(60);
   rectMode(CENTER);
 
   background(68, 0, 40);
@@ -37,19 +47,21 @@ void setup() {
   line(0, 0, 600, 226);
   line(0, 500, 600, 274);
 
-  flock = new Flock();
-  
-  // Aleatorio
-  for (int i = 0; i < MAX_PEOPLE; i++) {
-    flock.addPerson(new Person(flock.people));
-  }
+  group = new Group();
 
-  // Determinista
-  //for (int i = 0; i < MAX_PEOPLE/10; i++) {
-  //  for (int j = 0; j < 10; j++) {
-  //    flock.addPerson(new Person(new PVector(50 + i*22, 150 + 22*j)));
-  //  }
-  //}
+  // Aleatorio
+  if (RANDOM_GENERATE) {
+    for (int i = 0; i < MAX_PEOPLE; i++) {
+      group.addPerson(new Person(group.people));
+    }
+  } else {
+    // Determinista
+    for (int i = 0; i < MAX_PEOPLE/10; i++) {
+      for (int j = 0; j < 10; j++) {
+        group.addPerson(new Person(new PVector(50 + i*22, 150 + 22*j)));
+      }
+    }
+  }
 }
 
 void draw() {
@@ -58,11 +70,11 @@ void draw() {
   line(0, 0, 600, 226);
   line(0, 500, 600, 274);
 
-  flock.run();
+  group.run();
 }
 
 void mousePressed() {
-  flock.addPerson(new Person(new PVector(mouseX, mouseY)));
+  group.addPerson(new Person(new PVector(mouseX, mouseY)));
 }
 
 ArrayList<Person> copy(ArrayList<Person> people) {
@@ -103,10 +115,10 @@ PVector point_perpendicular(PVector p1, PVector p2, PVector p3) {
   return new PVector(x4, y4);
 }
 
-class Flock {
+class Group {
   public ArrayList<Person> people;
 
-  Flock() {
+  Group() {
     people = new ArrayList<Person>();
   }
 
@@ -148,9 +160,11 @@ class Person {
     v = PVector.add(v, PVector.mult(force, delta_t));
     v.limit(MAX_VELOCITY);
     p = PVector.add(p, PVector.mult(v, delta_t));
-    
-    if (p.x > 600) {
-      p = p_random(people);
+
+    if (p.x > 700) {
+      if (INFINITE_LOOP) {
+        p = p.set(0, p.y);
+      }
     }
   }
 
@@ -162,7 +176,7 @@ class Person {
   }
 
   PVector calc_e() {
-    if (p.y > 236 && p.y < 284) {
+    if ((p.y > 236 && p.y < 284) || p.x > 610) {
       return new PVector(1, 0);
     }
     if (p.y <= 231) {
@@ -193,7 +207,7 @@ class Person {
         acum_friccion.add(PVector.mult(p_normalize(n_ij), kappa*(r_ij - d_ij) * v_tangential(other)));
       }
     }
-    
+
     acum_repulsion.limit(MAX_FORCE);
     acum_corporal.limit(MAX_FORCE);
     acum_friccion.limit(MAX_FORCE);
@@ -208,15 +222,26 @@ class Person {
   }
 
   PVector calc_wall(PVector p1, PVector p2) {
+    PVector f_corporal = new PVector(0, 0);
+    PVector f_friccion = new PVector(0, 0);
+
     PVector pw = point_perpendicular(p1, p2, p);
-    
     float d_iw = PVector.sub(p, pw).mag();
     PVector n_iw = normalize(p, pw);
-    
+
     PVector f_repulsion = PVector.mult(n_iw, A*exp(-(d_iw - r)/B));
-    PVector f_corporal = PVector.mult(n_iw, 2*k*(r - d_iw));
-    PVector f_friccion = PVector.mult(p_normalize(n_iw), kappa*(r - d_iw) * v_tangential(pw));
-    
+
+    if (PVector.dist(p, pw) <= r) {
+      f_corporal = PVector.mult(n_iw, 2*k*(r - d_iw));
+      f_friccion = PVector.mult(p_normalize(n_iw), kappa*(r - d_iw) * v_tangential(pw));
+    }
+
+    // Caso de borde cuando el numero de la operacion es mayor al float max value.
+    // Se deja el numero mas grande posible. Luego se regularizara con los limites.
+    if (f_repulsion.x == Float.POSITIVE_INFINITY || f_repulsion.x == Float.NEGATIVE_INFINITY) {
+      f_repulsion = PVector.mult(n_iw, Float.MAX_VALUE);
+    }
+
     f_repulsion.limit(MAX_FORCE);
     f_corporal.limit(MAX_FORCE);
     f_friccion.limit(MAX_FORCE);
