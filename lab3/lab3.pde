@@ -53,8 +53,6 @@ void setup() {
 }
 
 void draw() {
-  //scale(1, -1);
-  //translate(0, -height);
   background(68, 0, 40);
   stroke(203, 135, 175);
   line(0, 0, 600, 226);
@@ -157,10 +155,10 @@ class Person {
   }
 
   PVector calc_force(ArrayList<Person> people) {
-    PVector same = f_same();
-    PVector person = f_person(people);
-    PVector wall = f_wall();
-    return PVector.add(same, PVector.add(person, wall));
+    PVector fs = f_same();
+    PVector fp = f_person(people);
+    PVector fw = f_wall();
+    return PVector.add(fs, PVector.add(fp, fw));
   }
 
   PVector calc_e() {
